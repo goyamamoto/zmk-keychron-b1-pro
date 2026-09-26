@@ -1,5 +1,7 @@
 # Keychron B1 Pro 用 ZMK
 
+[![Build and test](https://github.com/goyamamoto/zmk-keychron-b1-pro/actions/workflows/build.yml/badge.svg)](https://github.com/goyamamoto/zmk-keychron-b1-pro/actions/workflows/build.yml) [![CodeQL](https://github.com/goyamamoto/zmk-keychron-b1-pro/actions/workflows/codeql.yml/badge.svg)](https://github.com/goyamamoto/zmk-keychron-b1-pro/actions/workflows/codeql.yml) [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/goyamamoto/zmk-keychron-b1-pro/badge)](https://scorecard.dev/viewer/?uri=github.com/goyamamoto/zmk-keychron-b1-pro)
+
 Keychron B1 Pro US（PID `0x0711`）用のファームウェアです。Keychron 版 ZMK（Zephyr 3.2）ではなく、**upstream の ZMK と Zephyr 4.1** で動きます。**ZMK Studio** が使えます。含まれるのはオープンソースのコード（ZMK、Zephyr、このリポジトリ）だけなので、書き込み用のファームウェアをリリースで配布しています。ビルドは 2 種類あります。キーが刻印どおりのものと、日本語入力向けの機能（キーボード配列を日本語にしたホスト向けの US-JIS モード、スペース横の IME キー）を加えたものです。
 
 English: [README.md](README.md)
@@ -45,6 +47,12 @@ Keychron は同じ B1 Pro の名前で、キーマトリクスの異なる複数
 ブートローダーは書き換えないので、どのファームウェアからでも同じ手順で書き込めます。Keychron のファームウェアに戻すときは、Keychron 公式の B1 Pro 用ファームウェアを同じ手順で書き込みます。
 
 USB ID は ZMK のもの（`1d50:615e`）なので、Keychron Launcher はこのキーボードを認識しません。
+
+リリースのファイルは、タグを付けたコミットから GitHub Actions がビルドしたもので（PC 上でのビルドではありません）、それぞれに署名付きの[来歴証明（provenance attestation）](https://docs.github.com/ja/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds)が付いています。ダウンロードしたファイルがワークフローの作ったものと同じか確かめるには（[GitHub CLI](https://cli.github.com) が必要）:
+
+```sh
+gh attestation verify keychron-b1-pro.uf2 -R goyamamoto/zmk-keychron-b1-pro
+```
 
 ## キー
 
@@ -152,13 +160,13 @@ bash scripts/run-host-tests.sh   # 純粋なロジックをホストで。ビル
 bash scripts/run-zmk-tests.sh    # native_sim 上の ZMK テスト（Docker、ビルドのワークスペースを使用）
 ```
 
-ホストテストは、ゴーストフィルタ（ダイオードのないマトリクスが実際に読む値を入力）、出力の決め方、LED のロジックを確かめます。ZMK テストは、ZMK アプリ全体をこのリポジトリのコードと一緒に ZMK の `native_sim` テストボード向けにビルドし、模擬のキー入力を与えて、送られるすべての HID レポートを期待値と比べます。対象は、US-JIS の表 C01–C20 と仕様書のシナリオ（`tests/zmk/generate.py` が仕様書から書き起こす）、Fn+Tab と IME キーを含む B1 Pro のレイヤー、ZMK Studio 有効時に起動時からオンのスイッチです。GitHub Actions が push のたびにビルドと両方のテストを実行します。
+ホストテストは、ゴーストフィルタ（ダイオードのないマトリクスが実際に読む値を入力）、出力の決め方、LED のロジックを確かめます。ZMK テストは、ZMK アプリ全体をこのリポジトリのコードと一緒に ZMK の `native_sim` テストボード向けにビルドし、模擬のキー入力を与えて、送られるすべての HID レポートを期待値と比べます。対象は、US-JIS の表 C01–C20 と仕様書のシナリオ（`tests/zmk/generate.py` が仕様書から書き起こす）、Fn+Tab と IME キーを含む B1 Pro のレイヤー、ZMK Studio 有効時に起動時からオンのスイッチです。GitHub Actions が push のたびにビルドと両方のテストを実行します。加えて、C・Python・ワークフローのファイルに CodeQL、リポジトリに [OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/goyamamoto/zmk-keychron-b1-pro)、ワークフローに zizmor と actionlint、スクリプトに shellcheck を実行し、ZMK・Zephyr・ビルドイメージ・各アクションが正確なコミットやダイジェストに固定されていることを確認します。
 
 ## リポジトリの構成
 
 ```text
 .
-├── .github/     ワークフロー（ビルドとテスト、リリース）、Dependabot
+├── .github/     ワークフロー（ビルドとテスト、リリース、CodeQL、Scorecard、lint）、Dependabot
 ├── boards/      keychron_b1_pro ボード
 ├── config/      west マニフェスト、キーマップ、キーマップのオプション、設定
 ├── docs/        US-JIS の仕様書と設計（英語）

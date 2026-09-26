@@ -1,0 +1,68 @@
+name: Lint
+
+# Cheap checks that need no firmware build: the workflows themselves
+# (actionlint for syntax, zizmor for security), the shell scripts, the Python
+# scripts, and that the build stays pinned to exact commits and an image digest.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  workflows:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write # zizmor uploads its findings to the Security tab
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: actionlint
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo \
+            rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 \
+            -color
+      - name: zizmor
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          # Findings go to the Security tab; fork pull requests cannot upload.
+          advanced-security: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+
+  scripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: shellcheck
+        run: shellcheck --severity=warning scripts/*.sh
+      - name: Python scripts compile and the generated tests are current
+        run: |
+          python3 -m py_compile scripts/*.py tests/zmk/generate.py
+          python3 tests/zmk/generate.py --check
+      - name: The build is pinned to exact commits and an image digest
+        run: |
+          # west.yml: ZMK and Zephyr by 40-hex commit, never a branch or tag.
+          total="$(grep -cE '^ +revision:' config/west.yml)"
+          pinned="$(grep -cE '^ +revision: [0-9a-f]{40}$' config/west.yml)"
+          [ "$total" -eq 2 ] && [ "$pinned" -eq 2 ] \
+            || { echo "config/west.yml must pin ZMK and Zephyr by commit"; exit 1; }
+          # build image by digest
+          grep -qE '^image_ref="[^"]+@sha256:[0-9a-f]{64}"$' scripts/build-firmware.sh \
+            || { echo "scripts/build-firmware.sh must pin the image by digest"; exit 1; }
+          # workflows: every action by commit SHA
+          if grep -nE '^\s+uses: [^ ]+@(v[0-9]|main|master)' .github/workflows/*.yml; then
+            echo "actions must be pinned to a commit SHA"; exit 1
+          fi

@@ -1,5 +1,7 @@
 # ZMK for the Keychron B1 Pro
 
+[![Build and test](https://github.com/goyamamoto/zmk-keychron-b1-pro/actions/workflows/build.yml/badge.svg)](https://github.com/goyamamoto/zmk-keychron-b1-pro/actions/workflows/build.yml) [![CodeQL](https://github.com/goyamamoto/zmk-keychron-b1-pro/actions/workflows/codeql.yml/badge.svg)](https://github.com/goyamamoto/zmk-keychron-b1-pro/actions/workflows/codeql.yml) [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/goyamamoto/zmk-keychron-b1-pro/badge)](https://scorecard.dev/viewer/?uri=github.com/goyamamoto/zmk-keychron-b1-pro)
+
 Firmware for the Keychron B1 Pro US (PID `0x0711`) on **upstream ZMK with Zephyr 4.1**, instead of Keychron's ZMK fork on Zephyr 3.2. It brings **ZMK Studio** to the keyboard and contains only open-source code (ZMK, Zephyr and this repository), so ready-to-flash firmware is published in the releases. It comes in two builds: one with the keys as printed, and one with features for typing Japanese (a US-JIS mode for hosts set to the Japanese keyboard layout, IME keys beside Space).
 
 Japanese: [README.ja.md](README.ja.md)
@@ -45,6 +47,12 @@ How to find your PID with the stock firmware:
 The bootloader is not touched, so the same path works from any firmware. To go back to Keychron's firmware, flash Keychron's official B1 Pro firmware the same way.
 
 The keyboard identifies itself with ZMK's USB ID (`1d50:615e`), so the Keychron Launcher does not recognize it.
+
+The release files are built by GitHub Actions from the tagged commit, never on a PC, and each carries a signed [provenance attestation](https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds). To check that a downloaded file is the one the workflow built (needs the [GitHub CLI](https://cli.github.com)):
+
+```sh
+gh attestation verify keychron-b1-pro.uf2 -R goyamamoto/zmk-keychron-b1-pro
+```
 
 ## Keys
 
@@ -152,13 +160,13 @@ bash scripts/run-host-tests.sh   # pure logic on the host; after a build also a 
 bash scripts/run-zmk-tests.sh    # ZMK tests on native_sim (Docker, uses the build's workspace)
 ```
 
-The host tests cover the ghost filter (fed with the readings a matrix without diodes really produces), the output policy and the LED logic. The ZMK tests build the whole ZMK application with this repository's code for ZMK's `native_sim` test board, feed it mock key events and compare every HID report it sends with the expected one: the US-JIS table C01–C20 and the scenarios of the spec (written from the spec by `tests/zmk/generate.py`), the B1 Pro's layers with Fn+Tab and the IME keys, and a switch held at power-on with ZMK Studio enabled. GitHub Actions runs the build and both test sets on every push.
+The host tests cover the ghost filter (fed with the readings a matrix without diodes really produces), the output policy and the LED logic. The ZMK tests build the whole ZMK application with this repository's code for ZMK's `native_sim` test board, feed it mock key events and compare every HID report it sends with the expected one: the US-JIS table C01–C20 and the scenarios of the spec (written from the spec by `tests/zmk/generate.py`), the B1 Pro's layers with Fn+Tab and the IME keys, and a switch held at power-on with ZMK Studio enabled. GitHub Actions runs the build and both test sets on every push, and also CodeQL on the C, Python and workflow files, [OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/goyamamoto/zmk-keychron-b1-pro), zizmor and actionlint on the workflows, shellcheck on the scripts, and a check that ZMK, Zephyr, the build image and every action stay pinned to exact commits or digests.
 
 ## Repository layout
 
 ```text
 .
-├── .github/     workflows (build and tests, releases), Dependabot
+├── .github/     workflows (build and tests, releases, CodeQL, Scorecard, lint), Dependabot
 ├── boards/      the keychron_b1_pro board
 ├── config/      west manifest, keymap, keymap options, configuration
 ├── docs/        US-JIS spec and architecture

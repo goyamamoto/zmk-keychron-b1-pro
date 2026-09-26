@@ -7,6 +7,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Wait a week before taking a new release, so that a release that is
+    # withdrawn as compromised does not reach this repository.
+    cooldown:
+      default-days: 7
     groups:
       github-actions:
         patterns:
