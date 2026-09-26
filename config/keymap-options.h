@@ -3,8 +3,24 @@
  * Compile-time options of config/keychron_b1_pro.keymap. Edit, then rebuild
  * with `bash scripts/build-firmware.sh build`. ZMK Studio can also change
  * these keys at runtime.
+ *
+ * The build script builds the firmware twice: keychron-b1-pro-usjis.uf2 with
+ * the values below, and keychron-b1-pro.uf2 with B1_PLAIN defined, which
+ * turns all three off (no Japanese features, keys as printed).
  */
 #pragma once
+
+#ifdef B1_PLAIN
+
+#define B1_USJIS 0
+#define B1_IME_TAP 0
+#define B1_SWAP_CTRL_CAPS 0
+
+#else
+
+/* 1: Fn+Tab switches US-JIS mode (docs/usjis-substitution.md), for Windows
+ * set to the Japanese keyboard layout. 0: no US-JIS mode; Fn+Tab is Tab. */
+#define B1_USJIS 1
 
 /* 1: the two keys beside Space switch the IME when tapped (left: IME off,
  * right: IME on) and stay modifiers when held. 0: they are plain modifiers.
@@ -15,3 +31,5 @@
 /* 1: the Caps Lock key is Left Ctrl and the Left Ctrl key is Caps Lock on the
  * base layers of both OS modes. 0: the keys are as printed. */
 #define B1_SWAP_CTRL_CAPS 1
+
+#endif

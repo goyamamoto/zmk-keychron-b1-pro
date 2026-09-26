@@ -27,13 +27,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd build/firmware
-          files="keychron-b1-pro.uf2 THIRD-PARTY-NOTICES.txt build-info.json"
+          files="keychron-b1-pro.uf2 keychron-b1-pro-usjis.uf2 THIRD-PARTY-NOTICES.txt build-info.json"
           sha256sum $files > SHA256SUMS
           version="$(python3 -c 'import json; print(json.load(open("build-info.json"))["build_version"])')"
           {
             echo "Firmware for the Keychron B1 Pro US (PID 0x0711), build \`$version\`."
             echo
-            echo "Flash \`keychron-b1-pro.uf2\` as the README describes (reset switch while connecting USB, copy the file to the \`NRF52BOOT\` drive)."
+            echo "- \`keychron-b1-pro.uf2\`: keys as printed, no Japanese features."
+            echo "- \`keychron-b1-pro-usjis.uf2\`: with US-JIS mode (Fn+Tab), IME keys beside Space, Caps Lock and Left Ctrl swapped."
+            echo
+            echo "Flash one of them as the README describes (reset switch while connecting USB, copy the file to the \`NRF52BOOT\` drive)."
             echo "\`THIRD-PARTY-NOTICES.txt\` lists the components in the firmware and their licenses."
             echo
             echo '```'

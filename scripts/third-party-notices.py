@@ -4,10 +4,10 @@
 
 Runs in the build container (scripts/build-firmware.sh) after the build:
 
-    third-party-notices.py <build dir> <map file> <west list> <output>
+    third-party-notices.py <west list> <output> <build dir> <map file> [<build dir> <map file>...]
 
-It finds every object file that the linker put into the image (from the map
-file), maps it to its source (compile_commands.json) and reads the source's
+It finds every object file that the linker put into the images (from the map
+files), maps it to its source (compile_commands.json) and reads the source's
 license (SPDX tag, or a known file). The notice lists each component with its
 license and includes the license texts, and the per-file notices of files
 under terms other than their component's. A linked source whose license is
@@ -88,14 +88,9 @@ def component_of(src):
     return None
 
 
-def main():
-    build_dir, map_file, west_list, out = sys.argv[1:5]
-    cache = read(os.path.join(build_dir, "CMakeCache.txt"))
-    compiler = re.search(r"^CMAKE_C_COMPILER:\w+=(.*)$", cache, re.M).group(1)
-    sdk_target = os.path.dirname(os.path.dirname(compiler))  # .../arm-zephyr-eabi
-    sdk_licenses = os.path.join(sdk_target, "share", "licenses")
-
-    # Objects that contribute bytes to the image, from the map file.
+def linked_sources(build_dir, map_file, sdk_target):
+    """The sources of the objects that contribute bytes to an image, and the
+    toolchain libraries it links."""
     # Skip the list of discarded input sections at the top of the map.
     map_text = read(map_file)
     start = map_text.find("Linker script and memory map")
@@ -119,30 +114,53 @@ def main():
         out_m = re.search(r"-o (\S+)", entry["command"])
         if out_m:
             sources_by_obj.setdefault(os.path.basename(out_m.group(1)), set()).add(entry["file"])
+    sources, missing = set(), []
+    for obj in linked:
+        if obj in sources_by_obj:
+            sources |= sources_by_obj[obj]
+        else:
+            missing.append(obj)
+    return sources, toolchain, missing, len(linked)
 
-    per_component, extra_notices, problems = {}, {}, []
-    for obj in sorted(linked):
-        for src in sorted(sources_by_obj.get(obj, ())):
-            lic = license_of(src)
-            comp = component_of(src)
-            if lic not in ALLOWED:
-                problems.append(f"{src}: license {lic!r}")
+
+def main():
+    if len(sys.argv) < 5 or len(sys.argv) % 2 != 1:
+        fail("usage: third-party-notices.py <west list> <output> <build dir> <map file>...")
+    west_list, out = sys.argv[1:3]
+    builds = list(zip(sys.argv[3::2], sys.argv[4::2]))
+    cache = read(os.path.join(builds[0][0], "CMakeCache.txt"))
+    compiler = re.search(r"^CMAKE_C_COMPILER:\w+=(.*)$", cache, re.M).group(1)
+    sdk_target = os.path.dirname(os.path.dirname(compiler))  # .../arm-zephyr-eabi
+    sdk_licenses = os.path.join(sdk_target, "share", "licenses")
+
+    sources, toolchain, problems, objects = set(), set(), [], 0
+    for build_dir, map_file in builds:
+        s, t, missing, n = linked_sources(build_dir, map_file, sdk_target)
+        sources |= s
+        toolchain |= t
+        objects += n
+        problems += [f"{obj}: no source found ({build_dir})" for obj in missing]
+
+    per_component, extra_notices = {}, {}
+    for src in sorted(sources):
+        lic = license_of(src)
+        comp = component_of(src)
+        if lic not in ALLOWED:
+            problems.append(f"{src}: license {lic!r}")
+            continue
+        if comp is None:
+            problems.append(f"{src}: no component for this path")
+            continue
+        per_component.setdefault(comp[0], set()).add(lic)
+        if lic != comp[2] and lic not in ("Apache-2.0", "CC0-1.0"):
+            text = header_comment(src)
+            if not text:
+                problems.append(f"{src}: {lic} without a notice to reproduce")
                 continue
-            if comp is None:
-                problems.append(f"{src}: no component for this path")
-                continue
-            per_component.setdefault(comp[0], set()).add(lic)
-            if lic != comp[2] and lic not in ("Apache-2.0", "CC0-1.0"):
-                text = header_comment(src)
-                if not text:
-                    problems.append(f"{src}: {lic} without a notice to reproduce")
-                    continue
-                extra_notices.setdefault(text, []).append(src.replace("/workspace/", ""))
-            elif comp[3] is None:
-                extra_notices.setdefault(header_comment(src), []).append(
-                    src.replace("/workspace/", ""))
-        if obj not in sources_by_obj:
-            problems.append(f"{obj}: no source found")
+            extra_notices.setdefault(text, []).append(src.replace("/workspace/", ""))
+        elif comp[3] is None:
+            extra_notices.setdefault(header_comment(src), []).append(
+                src.replace("/workspace/", ""))
     unknown_tc = toolchain - {"libc.a", "libm.a", "libgcc.a"}
     if unknown_tc:
         problems.append(f"toolchain libraries not covered: {sorted(unknown_tc)}")
@@ -159,7 +177,7 @@ def main():
     o = []
     o.append("Third-party notices for this firmware image\n"
              "===========================================\n\n"
-             "The firmware image contains the following components. Their license\n"
+             "The firmware images contain the following components. Their license\n"
              "texts and notices follow. Generated at build time from the linked\n"
              "object files (scripts/third-party-notices.py).\n")
     for name, _, lic, lic_file, west_path in COMPONENTS:
@@ -197,7 +215,7 @@ def main():
 
     with open(out, "w", encoding="utf-8") as f:
         f.write("\n".join(o))
-    print(f"third-party notices: {len(linked)} objects checked, "
+    print(f"third-party notices: {objects} linked objects in {len(builds)} images checked, "
           f"{len(extra_notices)} per-file notices, written to {out}")
 
 

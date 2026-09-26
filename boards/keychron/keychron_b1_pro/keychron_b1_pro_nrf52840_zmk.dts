@@ -146,13 +146,6 @@
             #binding-cells = <1>;
             display-name = "Indicator";
         };
-
-        /* US-JIS substitution mode (src/usjis.c, docs/usjis-substitution.md). */
-        usjis: usjis {
-            compatible = "zmk,behavior-usjis";
-            #binding-cells = <1>;
-            display-name = "US-JIS";
-        };
     };
 
     /* Wake from soft off when the connection switch moves: the BT (P1.08)

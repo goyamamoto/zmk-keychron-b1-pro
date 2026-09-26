@@ -26,7 +26,6 @@ image_platform="linux/amd64"
 image_ref="zmkfirmware/zmk-build-arm:4.1@sha256:edb1c953438c6f720ddb79c3762f3972013b7fbbaf4fff3592fc869983e7afc5"
 
 board="keychron_b1_pro//zmk"
-artifact="keychron-b1-pro"
 
 mode="${1:-all}"
 case "$mode" in
@@ -72,7 +71,7 @@ if [[ "$mode" != in-container-* ]]; then
       --env REPO_COMMIT="$repo_commit" \
       --env REPO_DIRTY="$repo_dirty" \
       --env IMAGE_REF="$image_ref" \
-      --env BOARD="$board" --env ARTIFACT="$artifact" \
+      --env BOARD="$board" \
       "$image_ref" bash /workspace/config/scripts/build-firmware.sh "in-container-$step"
   }
 
@@ -110,42 +109,46 @@ expected_zephyr="$(sed -nE 's/^ *revision: ([0-9a-f]{40})$/\1/p' config/config/w
 grep -q "^zmk zmk $expected_zmk$" /workspace/.west-list || { echo "zmk checkout is not at the pinned commit" >&2; exit 1; }
 grep -q "^zephyr zephyr $expected_zephyr$" /workspace/.west-list || { echo "zephyr checkout is not at the pinned commit" >&2; exit 1; }
 
-build_dir="/workspace/build/keychron_b1_pro"
-rm -rf "$build_dir"
 export ZEPHYR_BASE=/workspace/zephyr
 west zephyr-export >/dev/null
-# studio-rpc-usb-uart: ZMK Studio over the USB CDC ACM serial port.
-west build -s zmk/app -d "$build_dir" -b "$BOARD" -S studio-rpc-usb-uart -- \
-  -DZMK_CONFIG=/workspace/config/config \
-  -DBUILD_VERSION="$BUILD_VERSION" \
-  2>&1 | tee /out/build.log
-[[ "${PIPESTATUS[0]}" -eq 0 ]] || exit 1
 
-# ---- collect outputs and the record of what was built
-rm -f /out/"$ARTIFACT".uf2 /out/"$ARTIFACT".hex /out/"$ARTIFACT".elf /out/"$ARTIFACT".map
-cp "$build_dir/zephyr/zmk.uf2" /out/"$ARTIFACT".uf2
-cp "$build_dir/zephyr/zmk.hex" /out/"$ARTIFACT".hex
-cp "$build_dir/zephyr/zmk.elf" /out/"$ARTIFACT".elf
-cp "$build_dir/zephyr/zmk.map" /out/"$ARTIFACT".map
-cp "$build_dir/zephyr/.config" /out/zephyr.config
-cp "$build_dir/zephyr/zephyr.dts" /out/zephyr.dts
-cp "$build_dir/zephyr_modules.txt" /out/zephyr_modules.txt
+# The two firmware files: without and with the Japanese features
+# (config/keymap-options.h). "artifact:preprocessor flags of the keymap".
+variants=("keychron-b1-pro:-DB1_PLAIN" "keychron-b1-pro-usjis:")
 
-# The license texts and notices of everything linked into the image; fails if
-# linked code has terms the notice does not cover.
-python3 /workspace/config/scripts/third-party-notices.py "$build_dir" \
-  /out/"$ARTIFACT".map /workspace/.west-list /out/THIRD-PARTY-NOTICES.txt
+rm -f /out/*.uf2 /out/*.hex /out/*.elf /out/*.map /out/*.config /out/*.dts /out/*.log
+build_dirs=()
+for v in "${variants[@]}"; do
+  artifact="${v%%:*}"
+  cppflags="${v#*:}"
+  build_dir="/workspace/build/$artifact"
+  rm -rf "$build_dir"
+  # studio-rpc-usb-uart: ZMK Studio over the USB CDC ACM serial port.
+  west build -s zmk/app -d "$build_dir" -b "$BOARD" -S studio-rpc-usb-uart -- \
+    -DZMK_CONFIG=/workspace/config/config \
+    -DBUILD_VERSION="$BUILD_VERSION" \
+    ${cppflags:+"-DDTS_EXTRA_CPPFLAGS=$cppflags"} \
+    2>&1 | tee /out/"$artifact".build.log
+  [[ "${PIPESTATUS[0]}" -eq 0 ]] || exit 1
 
-python3 - "$build_dir" <<'PY'
+  for ext in uf2 hex elf map; do
+    cp "$build_dir/zephyr/zmk.$ext" /out/"$artifact.$ext"
+  done
+  cp "$build_dir/zephyr/.config" /out/"$artifact".config
+  cp "$build_dir/zephyr/zephyr.dts" /out/"$artifact".dts
+  cp "$build_dir/zephyr_modules.txt" /out/zephyr_modules.txt
+  build_dirs+=("$build_dir" /out/"$artifact".map)
+done
+
+# The license texts and notices of everything linked into either image; fails
+# if linked code has terms the notice does not cover.
+python3 /workspace/config/scripts/third-party-notices.py /workspace/.west-list \
+  /out/THIRD-PARTY-NOTICES.txt "${build_dirs[@]}"
+
+python3 - "${variants[@]}" <<'PY'
 import hashlib, json, os, re, subprocess, sys
-build_dir = sys.argv[1]
 def sha(p): return hashlib.sha256(open(p, "rb").read()).hexdigest()
-log = open("/out/build.log", encoding="utf-8", errors="replace").read()
-def find(pattern):
-    m = re.search(pattern, log, re.M); return m.group(1).strip() if m else None
 projects = [l.split() for l in open("/workspace/.west-list").read().splitlines() if l.strip()]
-art = os.environ["ARTIFACT"]
-cache = open(build_dir + "/CMakeCache.txt").read()
 info = {
     "repository_commit": os.environ["REPO_COMMIT"],
     "repository_dirty": os.environ["REPO_DIRTY"] == "true",
@@ -153,35 +156,50 @@ info = {
     "source_date_epoch": int(os.environ["SOURCE_DATE_EPOCH"]),
     "board": os.environ["BOARD"],
     "zmk_config": "/workspace/config/config",
-    "keymap_file": find(r"^-- Using keymap file: (.*)$"),
     "west_projects": [{"name": n, "path": p, "sha": s} for n, p, s in projects],
     "container_image": os.environ["IMAGE_REF"],
     "west_version": subprocess.check_output(["west", "--version"]).decode().split()[-1],
     "cmake_version": subprocess.check_output(["cmake", "--version"]).decode().split()[2],
-    "compiler": subprocess.check_output([re.search(r"^CMAKE_C_COMPILER:\w+=(.*)$", cache, re.M).group(1), "--version"]).decode().splitlines()[0],
     "zephyr_modules": [l.split('":"')[0].strip('"') for l in open("/out/zephyr_modules.txt").read().splitlines() if l.strip()],
-    "artifacts": {f: sha("/out/" + f)
-                  for f in (art + ".uf2", art + ".hex", art + ".elf", "THIRD-PARTY-NOTICES.txt")},
+    "variants": {},
+    "artifacts": {"THIRD-PARTY-NOTICES.txt": sha("/out/THIRD-PARTY-NOTICES.txt")},
 }
-
-# Keycode listeners in the order the event manager calls them (their
-# subscriptions' addresses in the .event_subscription section). US-JIS must
-# come after the behaviors that re-raise keycode events and right before
-# hid_listener (docs/usjis-architecture.md section 6); the firmware checks
-# this at startup too, but a release build does not log the result.
-nm = re.search(r"^CMAKE_NM:\w+=(.*)$", cache, re.M).group(1)
-prefix, suffix = "zmk_event_sub_", "zmk_keycode_state_changed"
-listeners = [l.split()[2][len(prefix):-len(suffix)]
-             for l in subprocess.check_output([nm, "-n", build_dir + "/zephyr/zmk.elf"]).decode().splitlines()
-             if len(l.split()) == 3 and l.split()[2].startswith(prefix) and l.split()[2].endswith(suffix)]
-info["keycode_listeners"] = listeners
+errors = []
+for v in sys.argv[1:]:
+    art, cppflags = v.split(":", 1)
+    build_dir = "/workspace/build/" + art
+    cache = open(build_dir + "/CMakeCache.txt").read()
+    log = open(f"/out/{art}.build.log", encoding="utf-8", errors="replace").read()
+    m = re.search(r"^-- Using keymap file: (.*)$", log, re.M)
+    info["compiler"] = subprocess.check_output([re.search(r"^CMAKE_C_COMPILER:\w+=(.*)$", cache, re.M).group(1), "--version"]).decode().splitlines()[0]
+    # Keycode listeners in the order the event manager calls them (their
+    # subscriptions' addresses in the .event_subscription section). US-JIS
+    # must come after the behaviors that re-raise keycode events and right
+    # before hid_listener (docs/usjis-architecture.md section 6); the firmware
+    # checks this at startup too, but a release build does not log the result.
+    nm = re.search(r"^CMAKE_NM:\w+=(.*)$", cache, re.M).group(1)
+    prefix, suffix = "zmk_event_sub_", "zmk_keycode_state_changed"
+    listeners = [l.split()[2][len(prefix):-len(suffix)]
+                 for l in subprocess.check_output([nm, "-n", build_dir + "/zephyr/zmk.elf"]).decode().splitlines()
+                 if len(l.split()) == 3 and l.split()[2].startswith(prefix) and l.split()[2].endswith(suffix)]
+    with_usjis = "B1_PLAIN" not in cppflags
+    if with_usjis:
+        i = listeners.index("usjis") if "usjis" in listeners else -1
+        before = ("behavior_hold_tap", "behavior_sticky_key", "behavior_caps_word", "behavior_key_repeat")
+        if i < 0 or listeners[i + 1:i + 2] != ["hid_listener"] or any(n in listeners[i:] for n in before):
+            errors.append(f"{art}: US-JIS listener missing or misplaced: {' '.join(listeners)}")
+    elif "usjis" in listeners:
+        errors.append(f"{art}: US-JIS linked into the build without it")
+    print(f"{art}: keycode listeners: {' '.join(listeners)}")
+    info["variants"][art] = {
+        "keymap_file": m.group(1).strip() if m else None,
+        "keymap_cppflags": cppflags,
+        "keycode_listeners": listeners,
+    }
+    for ext in ("uf2", "hex", "elf"):
+        info["artifacts"][f"{art}.{ext}"] = sha(f"/out/{art}.{ext}")
 json.dump(info, open("/out/build-info.json", "w"), indent=2)
-if "usjis" in listeners:
-    i = listeners.index("usjis")
-    before = ("behavior_hold_tap", "behavior_sticky_key", "behavior_caps_word", "behavior_key_repeat")
-    if listeners[i + 1:i + 2] != ["hid_listener"] or any(
-            n in listeners[i:] for n in before):
-        sys.exit("US-JIS listener order wrong: " + " ".join(listeners))
-    print("keycode listeners: " + " ".join(listeners))
-print(json.dumps({k: info[k] for k in ("build_version", "keymap_file", "artifacts")}, indent=2))
+if errors:
+    sys.exit("\n".join(errors))
+print(json.dumps({k: info[k] for k in ("build_version", "artifacts")}, indent=2))
 PY

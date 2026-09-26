@@ -31,6 +31,7 @@ jobs:
           name: keychron-b1-pro-${{ github.sha }}
           path: |
             build/firmware/keychron-b1-pro.uf2
+            build/firmware/keychron-b1-pro-usjis.uf2
             build/firmware/THIRD-PARTY-NOTICES.txt
             build/firmware/build-info.json
           if-no-files-found: error

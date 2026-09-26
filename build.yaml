@@ -1,6 +1,11 @@
-# Build target of this repository (scripts/build-firmware.sh builds it the
-# same way, with the studio-rpc-usb-uart snippet).
+# Build targets of this repository (scripts/build-firmware.sh builds them the
+# same way, with the studio-rpc-usb-uart snippet). The keymap options are in
+# config/keymap-options.h.
 include:
   - board: keychron_b1_pro//zmk
     snippet: studio-rpc-usb-uart
+    cmake-args: -DDTS_EXTRA_CPPFLAGS=-DB1_PLAIN
     artifact-name: keychron-b1-pro
+  - board: keychron_b1_pro//zmk
+    snippet: studio-rpc-usb-uart
+    artifact-name: keychron-b1-pro-usjis
