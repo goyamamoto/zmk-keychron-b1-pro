@@ -1,0 +1,6 @@
+name: kb1-test-support
+build:
+  cmake: .
+  kconfig: Kconfig
+  settings:
+    dts_root: .

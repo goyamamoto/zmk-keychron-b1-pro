@@ -1,0 +1,13 @@
+# Version updates for the actions used by the workflows. The firmware's
+# sources (config/west.yml) and the build image are pinned on purpose for
+# reproducibility and are updated by hand.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - "*"

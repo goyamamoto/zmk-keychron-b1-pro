@@ -1,0 +1,48 @@
+# Copyright (c) 2020, Pete Johanson
+# Copyright (c) 2026 zmk-kb1 contributors
+# SPDX-License-Identifier: MIT
+
+description: |
+  GPIO key matrix without diodes (col2row only): a column is driven only while
+  it is scanned and floats otherwise, and ghost readings are kept out of
+  debouncing (src/kscan_gpio_matrix_nodiode.c). Otherwise the same properties
+  as zmk,kscan-gpio-matrix, from which this binding is copied.
+
+compatible: "zmk,kb1-kscan-gpio-matrix-nodiode"
+
+include: kscan.yaml
+
+properties:
+  row-gpios:
+    type: phandle-array
+    required: true
+  col-gpios:
+    type: phandle-array
+    required: true
+  debounce-period:
+    type: int
+    required: false
+    deprecated: true
+    description: Deprecated. Use debounce-press-ms and debounce-release-ms instead.
+  debounce-press-ms:
+    type: int
+    default: 5
+    description: Debounce time for key press in milliseconds. Use 0 for eager debouncing.
+  debounce-release-ms:
+    type: int
+    default: 5
+    description: Debounce time for key release in milliseconds.
+  debounce-scan-period-ms:
+    type: int
+    default: 1
+    description: Time between reads in milliseconds when any key is pressed.
+  poll-period-ms:
+    type: int
+    default: 10
+    description: Time between reads in milliseconds when no key is pressed and ZMK_KSCAN_MATRIX_POLLING is enabled.
+  diode-direction:
+    type: string
+    default: row2col
+    enum:
+      - row2col
+      - col2row

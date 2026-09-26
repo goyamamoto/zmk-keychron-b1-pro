@@ -1,0 +1,6 @@
+# Build target of this repository (scripts/build-firmware.sh builds it the
+# same way, with the studio-rpc-usb-uart snippet).
+include:
+  - board: keychron_b1_pro//zmk
+    snippet: studio-rpc-usb-uart
+    artifact-name: keychron-b1-pro

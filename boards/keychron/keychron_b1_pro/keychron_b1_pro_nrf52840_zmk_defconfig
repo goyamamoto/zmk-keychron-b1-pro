@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: MIT
+
+CONFIG_ARM_MPU=y
+CONFIG_GPIO=y
+CONFIG_PINCTRL=y
+
+CONFIG_USE_DT_CODE_PARTITION=y
+CONFIG_BUILD_OUTPUT_UF2=y
+
+CONFIG_MPU_ALLOW_FLASH_WRITE=y
+CONFIG_NVS=y
+CONFIG_SETTINGS_NVS=y
+CONFIG_FLASH=y
+CONFIG_FLASH_PAGE_LAYOUT=y
+CONFIG_FLASH_MAP=y
+
+CONFIG_ZMK_USB=y
+CONFIG_ZMK_BLE=y
+
+# The board has no 32.768 kHz crystal: the stock Keychron firmware runs the
+# low-frequency clock from the internal RC oscillator, with calibration
+# (keychron_defconfig: CONFIG_CLOCK_CONTROL_NRF_K32SRC_RC=y). Zephyr's default
+# is the crystal, which never starts on this board.
+CONFIG_CLOCK_CONTROL_NRF_K32SRC_RC=y
+CONFIG_CLOCK_CONTROL_NRF_K32SRC_RC_CALIBRATION=y
+
+# The stock firmware's kscan event queue; ZMK's default of 4 can drop events
+# when several keys change in one scan pass.
+CONFIG_ZMK_KSCAN_EVENT_QUEUE_SIZE=32
+
+# Typing in BIOS/UEFI setup, as with the stock firmware.
+CONFIG_ZMK_USB_BOOT=y

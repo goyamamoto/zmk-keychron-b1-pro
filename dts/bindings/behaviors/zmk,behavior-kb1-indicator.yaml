@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: MIT
+
+description: |
+  Indicators on the B1 Pro's LEDs. KB1_IND_BATTERY: while held, the RGB LED
+  shows the battery level.
+
+compatible: "zmk,behavior-kb1-indicator"
+
+include: one_param.yaml

@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: MIT
+
+description: |
+  Connection switch of the Keychron B1 Pro. Parameter CONN_SW_BT: Bluetooth
+  while the switch is in this position, USB when it leaves it. CONN_SW_OFF:
+  soft off as soon as the switch enters this position.
+
+compatible: "zmk,behavior-kb1-conn-switch"
+
+include: one_param.yaml

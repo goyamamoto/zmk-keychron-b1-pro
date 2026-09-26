@@ -1,0 +1,44 @@
+name: Release
+
+# Pushing a tag v* builds the firmware from that commit, runs the tests and
+# publishes a GitHub Release with the UF2, the third-party notices, the build
+# record and their SHA-256 sums.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the firmware in the pinned image
+        run: bash scripts/build-firmware.sh
+      - name: Host tests
+        run: bash scripts/run-host-tests.sh
+      - name: ZMK tests on native_sim
+        run: bash scripts/run-zmk-tests.sh
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd build/firmware
+          files="keychron-b1-pro.uf2 THIRD-PARTY-NOTICES.txt build-info.json"
+          sha256sum $files > SHA256SUMS
+          version="$(python3 -c 'import json; print(json.load(open("build-info.json"))["build_version"])')"
+          {
+            echo "Firmware for the Keychron B1 Pro US (PID 0x0711), build \`$version\`."
+            echo
+            echo "Flash \`keychron-b1-pro.uf2\` as the README describes (reset switch while connecting USB, copy the file to the \`NRF52BOOT\` drive)."
+            echo "\`THIRD-PARTY-NOTICES.txt\` lists the components in the firmware and their licenses."
+            echo
+            echo '```'
+            cat SHA256SUMS
+            echo '```'
+          } > notes.md
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md \
+            $files SHA256SUMS

@@ -1,0 +1,223 @@
+# SPDX-License-Identifier: MIT
+
+config KB1_EARLY_EVENTS
+    bool "Replay key events that arrive before the keymap is ready"
+    default y
+    help
+      A switch or key already on at power-on can be reported before ZMK's
+      keymap has its bindings (with ZMK Studio they are copied in at init),
+      and would be dropped: the Win position or the BT position ignored
+      until the switch moves. src/early_events.c holds such events back and
+      replays them.
+
+config KB1_EARLY_EVENTS_MAX
+    int "Key events held back before the keymap is ready"
+    default 16
+    depends on KB1_EARLY_EVENTS
+
+config KB1_CONN_SWITCH
+    bool "Keychron B1 Pro connection switch and power"
+    default y
+    depends on DT_HAS_ZMK_BEHAVIOR_KB1_CONN_SWITCH_ENABLED
+    depends on ZMK_BLE && ZMK_USB
+    select ZMK_PM_SOFT_OFF
+    help
+      &conn_sw: the connection switch (BT / cable / 2.4G = off), the output
+      policy of src/conn_policy.c, and turning off (src/kb1_power.c): the
+      2.4G position, the cable position without USB, idle sleep and low
+      battery.
+
+if KB1_CONN_SWITCH
+
+config KB1_CONN_SWITCH_BOOT_CHECK_MS
+    int "Delay after boot before the cable position is assumed (ms)"
+    default 500
+    range 100 5000
+    help
+      The direct inputs are scanned right after boot. If neither the BT nor
+      the 2.4G position has been reported by then, the switch is in the
+      cable position.
+
+config KB1_CABLE_OFF_DELAY_MS
+    int "Time in the cable position without USB power before turning off (ms)"
+    default 5000
+    range 1000 50000
+    help
+      Plugging USB back in within this time keeps the keyboard on. Keep it
+      well below CONFIG_ZMK_SETTINGS_SAVE_DEBOUNCE.
+
+config KB1_OFF_HOLD_MS
+    int "Time the switch must stay in the 2.4G (off) position (ms)"
+    default 300
+    range 50 2000
+
+config KB1_IDLE_SLEEP_MS
+    int "Time after ZMK's idle state before idle sleep (ms)"
+    default 7200000
+    help
+      Without USB power, the keyboard turns off this long after it becomes
+      idle (CONFIG_ZMK_IDLE_TIMEOUT). A key press or the switch wakes it.
+      The stock firmware slept after 2 hours.
+
+config KB1_BATTERY_CUTOFF
+    bool "Turn off when the battery voltage is low"
+    default y
+    depends on ZMK_BATTERY_REPORTING
+
+config KB1_BATTERY_CUTOFF_MV
+    int "Battery voltage below which the keyboard turns off (mV)"
+    default 3045
+    range 2800 3500
+    depends on KB1_BATTERY_CUTOFF
+    help
+      The stock firmware's shutdown voltage.
+
+config KB1_BATTERY_CUTOFF_READINGS
+    int "Readings in a row below the cutoff before turning off"
+    default 3
+    range 1 10
+    depends on KB1_BATTERY_CUTOFF
+    help
+      One reading per CONFIG_ZMK_BATTERY_REPORT_INTERVAL.
+
+config KB1_BATTERY_LOW_MV
+    int "Battery voltage below which the LED warns (mV)"
+    default 3320
+    depends on KB1_BATTERY_CUTOFF
+    help
+      The stock firmware's low-battery warning: three red flashes at each
+      check (CONFIG_ZMK_BATTERY_REPORT_INTERVAL).
+
+config KB1_FIRST_SWITCH_POSITION
+    int "First key position that is a switch or charger input, not a key"
+    default 77
+    help
+      Positions from here on (the Mac/Win switch, the connection switch, the
+      charger signals) are held for hours and do not count as keys held down
+      for idle sleep.
+
+endif
+
+config KB1_SWITCH_WAKER
+    bool "Wake from soft off when the connection switch moves"
+    default y
+    depends on DT_HAS_ZMK_KB1_SWITCH_WAKER_ENABLED
+    depends on PM_DEVICE
+
+config KB1_KEY_WAKER
+    bool "Wake from idle sleep on a key press"
+    default y
+    depends on DT_HAS_ZMK_KB1_KEY_WAKER_ENABLED
+    depends on PM_DEVICE
+    depends on !KB1_KSCAN_MATRIX_POLLING
+
+config KB1_KEY_WAKER_INIT_PRIORITY
+    int "Init priority of the key waker"
+    default 92
+    depends on KB1_KEY_WAKER
+    help
+      After the matrix kscan it refers to (CONFIG_KSCAN_INIT_PRIORITY).
+
+config KB1_KSCAN_GPIO_MATRIX_NODIODE
+    bool "GPIO key matrix without diodes"
+    default y
+    depends on DT_HAS_ZMK_KB1_KSCAN_GPIO_MATRIX_NODIODE_ENABLED
+    select ZMK_KSCAN_GPIO_DRIVER
+
+if KB1_KSCAN_GPIO_MATRIX_NODIODE
+
+config KB1_KSCAN_MATRIX_POLLING
+    bool "Poll the matrix instead of waiting for an interrupt"
+
+config KB1_KSCAN_MATRIX_WAIT_BEFORE_INPUTS
+    int "Microseconds between driving a column and reading the rows"
+    default 0
+
+config KB1_KSCAN_MATRIX_WAIT_BETWEEN_OUTPUTS
+    int "Microseconds between releasing a column and driving the next"
+    default 0
+    help
+      A released column is driven low (discharged) before it floats, as the
+      stock firmware does, so no wait is needed by default.
+
+endif
+
+config KB1_LEDS
+    bool "Status LEDs of the B1 Pro"
+    default y
+    depends on $(dt_nodelabel_enabled,status_leds)
+    depends on KB1_CONN_SWITCH
+    select LED
+    select ZMK_HID_INDICATORS
+    help
+      Bluetooth, Caps Lock and RGB (charging, battery) LEDs, as the stock
+      firmware shows them (include/kb1/led_logic.h).
+
+config KB1_CHARGING_POSITION
+    int "Key position of the charger's charging signal"
+    default 80
+    depends on KB1_LEDS
+
+config KB1_CHARGE_DONE_POSITION
+    int "Key position of the charger's charge-done signal"
+    default 81
+    depends on KB1_LEDS
+
+config KB1_INDICATOR_BEHAVIOR
+    bool "&kb1_ind behavior (battery level on the LEDs)"
+    default y
+    depends on DT_HAS_ZMK_BEHAVIOR_KB1_INDICATOR_ENABLED
+    depends on KB1_LEDS
+
+menu "US-JIS substitution"
+
+config ZMK_USJIS
+    bool "US-JIS substitution"
+    default y
+    depends on DT_HAS_ZMK_BEHAVIOR_USJIS_ENABLED
+    depends on !ZMK_SPLIT || ZMK_SPLIT_ROLE_CENTRAL
+    help
+      Substitutes the symbol input of the US layout so that a host fixed to
+      the Japanese keyboard layout types what the US keycaps show. &usjis
+      switches it. See docs/usjis-substitution.md.
+
+if ZMK_USJIS
+
+config ZMK_USJIS_DEFAULT_ENABLED
+    bool "Mode enabled when no valid setting is stored"
+    help
+      The spec defaults to DISABLED on first boot.
+
+config ZMK_USJIS_MAX_ENTRIES
+    int "Press record capacity"
+    default 82
+    help
+      At least the number of key positions, so that simultaneous presses of
+      physical keys never exceed it (the B1 Pro has 82 positions, the five
+      switch and charger inputs included).
+
+config ZMK_USJIS_LAYER_MASK
+    hex "Layers on which substitution applies (bit mask, 0 = all)"
+    default 0x04
+    help
+      Substitution happens only while at least one of these layers is
+      active. On the B1 Pro the Win position of the OS switch holds &mo 2,
+      so 0x04 means "Win mode only"; macOS does not need it.
+
+config ZMK_USJIS_SETTINGS_SAVE_DELAY_MS
+    int "Delay before an applied mode is written to settings (ms)"
+    default 2000
+    help
+      Coalesces repeated toggles into one flash write. ZMK's own
+      CONFIG_ZMK_SETTINGS_SAVE_DEBOUNCE (60 s) is too long: a power cycle
+      within that time would lose the mode.
+
+config ZMK_USJIS_LOG_LEVEL
+    int "Log level of the usjis module"
+    default 1
+    help
+      Zephyr log level (0 none, 1 error, 2 warning, 3 info, 4 debug).
+
+endif
+
+endmenu

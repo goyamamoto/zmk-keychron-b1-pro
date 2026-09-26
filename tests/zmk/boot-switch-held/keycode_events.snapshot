@@ -1,0 +1,6 @@
+listener order ok
+Replaying 1 key events from before the keymap was ready (0 dropped)
+kbd {02,[2D]}
+kbd {00,[]}
+kbd {00,[73]}
+kbd {00,[]}

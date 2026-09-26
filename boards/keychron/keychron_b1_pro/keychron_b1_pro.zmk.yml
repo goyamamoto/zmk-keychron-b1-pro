@@ -1,0 +1,11 @@
+file_format: "1"
+id: keychron_b1_pro//zmk
+name: Keychron B1 Pro (US)
+type: board
+arch: arm
+features:
+  - keys
+  - studio
+outputs:
+  - usb
+  - ble

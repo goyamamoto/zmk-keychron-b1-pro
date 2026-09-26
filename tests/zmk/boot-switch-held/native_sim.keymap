@@ -1,0 +1,91 @@
+/* Written by hand (not by generate.py). A switch already on at power-on,
+ * like the B1 Pro's Mac/Win switch in the Win position, while an init between
+ * the physical layouts and the keymap is slow (CONFIG_KB1_TEST_BOOT_DELAY_MS)
+ * and ZMK Studio makes the keymap's bindings appear only at keymap_init().
+ * src/early_events.c must replay the press: layer 1 is on, so US-JIS
+ * substitutes = (C09). Without it, the press is lost (the program crashes on
+ * native_sim; the B1 Pro stayed in the Mac layer). */
+#include <dt-bindings/zmk/keys.h>
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/kscan_mock.h>
+#include <dt-bindings/zmk/usjis.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <dt-bindings/zmk/matrix_transform.h>
+#include <physical_layouts.dtsi>
+
+&kscan {
+    rows = <1>;
+    columns = <2>;
+    events = <
+        ZMK_MOCK_PRESS(0,0,1000)
+        ZMK_MOCK_RELEASE(0,0,10)
+        ZMK_MOCK_PRESS(0,1,10)
+        ZMK_MOCK_RELEASE(0,1,10)
+    >;
+};
+
+/ {
+    chosen {
+        zmk,kscan = &composite;
+        zmk,physical-layout = &test_layout;
+    };
+
+    /* ZMK Studio needs a physical layout; with Studio the keymap's bindings
+     * are copied in at init, which is what makes the race possible. */
+    test_transform: test_transform {
+        compatible = "zmk,matrix-transform";
+        rows = <2>;
+        columns = <2>;
+        map = <RC(0,0) RC(0,1) RC(1,0) RC(1,1)>;
+    };
+
+    test_layout: test_layout {
+        compatible = "zmk,physical-layout";
+        display-name = "test";
+        transform = <&test_transform>;
+        keys = <&key_physical_attrs 100 100 0 0 0 0 0>,
+               <&key_physical_attrs 100 100 100 0 0 0 0>,
+               <&key_physical_attrs 100 100 0 100 0 0 0>,
+               <&key_physical_attrs 100 100 100 100 0 0 0>;
+    };
+
+    /* The Mac/Win switch: the emulated GPIO reads low from boot, so this
+     * active-low input is on at power-on, like the Win position. */
+    kscan_direct: kscan_direct {
+        compatible = "zmk,kscan-gpio-direct";
+        debounce-scan-period-ms = <50>;
+        debounce-press-ms = <150>;
+        debounce-release-ms = <150>;
+        input-gpios = <&gpio0 5 GPIO_ACTIVE_LOW>;
+    };
+
+    composite: composite {
+        compatible = "zmk,kscan-composite";
+        rows = <2>;
+        columns = <2>;
+        mock {
+            kscan = <&kscan>;
+        };
+        direct {
+            kscan = <&kscan_direct>;
+            row-offset = <1>;
+        };
+    };
+
+    behaviors {
+        usjis: usjis {
+            compatible = "zmk,behavior-usjis";
+            #binding-cells = <1>;
+        };
+    };
+
+    keymap {
+        compatible = "zmk,keymap";
+        mac {
+            bindings = <&kp EQUAL &kp F24 &mo 1 &none>;
+        };
+        win {
+            bindings = <&trans &trans &trans &trans>;
+        };
+    };
+};

@@ -1,0 +1,107 @@
+/*
+ * Copyright (c) 2026 zmk-kb1 contributors
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Physical layout of the Keychron B1 Pro US, for ZMK Studio. Units are 1/100
+ * of a key unit; the order follows default_transform. Key sizes and positions
+ * are those of the B1 Pro US (PID 0x0711) in Keychron's Launcher definition
+ * (app/src/launcher/875824913.json of Keychron ZMK at
+ * c284513085c005edf5f9a52b28c8090cc6ed01d2), matched by matrix row and
+ * column: 15 x 6.25 units, gaps in the F row, a 6.25-unit space bar and
+ * half-height Up/Down keys. The last five entries stand for the direct inputs
+ * (Mac/Win, BT, 2.4G, charging, charge done), drawn small below the keys.
+ */
+
+/ {
+    layout_b1_pro_ansi: layout_b1_pro_ansi {
+        compatible = "zmk,physical-layout";
+        display-name = "B1 Pro US";
+        transform = <&default_transform>;
+
+        keys  //                       w   h    x   y rot rx ry
+            = <&key_physical_attrs 100 100    0   0 0 0 0>  /*  0 RC(3,1) */,
+              <&key_physical_attrs 100 100  125   0 0 0 0>  /*  1 RC(6,2) */,
+              <&key_physical_attrs 100 100  225   0 0 0 0>  /*  2 RC(6,3) */,
+              <&key_physical_attrs 100 100  325   0 0 0 0>  /*  3 RC(1,3) */,
+              <&key_physical_attrs 100 100  425   0 0 0 0>  /*  4 RC(3,3) */,
+              <&key_physical_attrs 100 100  550   0 0 0 0>  /*  5 RC(7,0) */,
+              <&key_physical_attrs 100 100  650   0 0 0 0>  /*  6 RC(3,6) */,
+              <&key_physical_attrs 100 100  750   0 0 0 0>  /*  7 RC(1,7) */,
+              <&key_physical_attrs 100 100  850   0 0 0 0>  /*  8 RC(6,7) */,
+              <&key_physical_attrs 100 100  975   0 0 0 0>  /*  9 RC(6,10) */,
+              <&key_physical_attrs 100 100 1075   0 0 0 0>  /* 10 RC(7,10) */,
+              <&key_physical_attrs 100 100 1175   0 0 0 0>  /* 11 RC(3,10) */,
+              <&key_physical_attrs 100 100 1275   0 0 0 0>  /* 12 RC(5,10) */,
+              <&key_physical_attrs 100 100 1400   0 0 0 0>  /* 13 RC(6,11) */,
+              <&key_physical_attrs 100 100    0 125 0 0 0>  /* 14 RC(6,1) */,
+              <&key_physical_attrs 100 100  100 125 0 0 0>  /* 15 RC(7,1) */,
+              <&key_physical_attrs 100 100  200 125 0 0 0>  /* 16 RC(7,2) */,
+              <&key_physical_attrs 100 100  300 125 0 0 0>  /* 17 RC(7,3) */,
+              <&key_physical_attrs 100 100  400 125 0 0 0>  /* 18 RC(7,4) */,
+              <&key_physical_attrs 100 100  500 125 0 0 0>  /* 19 RC(6,4) */,
+              <&key_physical_attrs 100 100  600 125 0 0 0>  /* 20 RC(6,5) */,
+              <&key_physical_attrs 100 100  700 125 0 0 0>  /* 21 RC(7,5) */,
+              <&key_physical_attrs 100 100  800 125 0 0 0>  /* 22 RC(7,6) */,
+              <&key_physical_attrs 100 100  900 125 0 0 0>  /* 23 RC(7,7) */,
+              <&key_physical_attrs 100 100 1000 125 0 0 0>  /* 24 RC(7,8) */,
+              <&key_physical_attrs 100 100 1100 125 0 0 0>  /* 25 RC(6,8) */,
+              <&key_physical_attrs 100 100 1200 125 0 0 0>  /* 26 RC(6,6) */,
+              <&key_physical_attrs 200 100 1300 125 0 0 0>  /* 27 RC(1,10) */,
+              <&key_physical_attrs 150 100    0 225 0 0 0>  /* 28 RC(1,1) */,
+              <&key_physical_attrs 100 100  150 225 0 0 0>  /* 29 RC(0,1) */,
+              <&key_physical_attrs 100 100  250 225 0 0 0>  /* 30 RC(0,2) */,
+              <&key_physical_attrs 100 100  350 225 0 0 0>  /* 31 RC(0,3) */,
+              <&key_physical_attrs 100 100  450 225 0 0 0>  /* 32 RC(0,4) */,
+              <&key_physical_attrs 100 100  550 225 0 0 0>  /* 33 RC(1,4) */,
+              <&key_physical_attrs 100 100  650 225 0 0 0>  /* 34 RC(1,5) */,
+              <&key_physical_attrs 100 100  750 225 0 0 0>  /* 35 RC(0,5) */,
+              <&key_physical_attrs 100 100  850 225 0 0 0>  /* 36 RC(0,6) */,
+              <&key_physical_attrs 100 100  950 225 0 0 0>  /* 37 RC(0,7) */,
+              <&key_physical_attrs 100 100 1050 225 0 0 0>  /* 38 RC(0,8) */,
+              <&key_physical_attrs 100 100 1150 225 0 0 0>  /* 39 RC(1,8) */,
+              <&key_physical_attrs 100 100 1250 225 0 0 0>  /* 40 RC(1,6) */,
+              <&key_physical_attrs 150 100 1350 225 0 0 0>  /* 41 RC(2,10) */,
+              <&key_physical_attrs 175 100    0 325 0 0 0>  /* 42 RC(1,2) */,
+              <&key_physical_attrs 100 100  175 325 0 0 0>  /* 43 RC(2,1) */,
+              <&key_physical_attrs 100 100  275 325 0 0 0>  /* 44 RC(2,2) */,
+              <&key_physical_attrs 100 100  375 325 0 0 0>  /* 45 RC(2,3) */,
+              <&key_physical_attrs 100 100  475 325 0 0 0>  /* 46 RC(2,4) */,
+              <&key_physical_attrs 100 100  575 325 0 0 0>  /* 47 RC(3,4) */,
+              <&key_physical_attrs 100 100  675 325 0 0 0>  /* 48 RC(3,5) */,
+              <&key_physical_attrs 100 100  775 325 0 0 0>  /* 49 RC(2,5) */,
+              <&key_physical_attrs 100 100  875 325 0 0 0>  /* 50 RC(2,6) */,
+              <&key_physical_attrs 100 100  975 325 0 0 0>  /* 51 RC(2,7) */,
+              <&key_physical_attrs 100 100 1075 325 0 0 0>  /* 52 RC(2,8) */,
+              <&key_physical_attrs 100 100 1175 325 0 0 0>  /* 53 RC(3,8) */,
+              <&key_physical_attrs 225 100 1275 325 0 0 0>  /* 54 RC(4,10) */,
+              <&key_physical_attrs 225 100    0 425 0 0 0>  /* 55 RC(1,15) */,
+              <&key_physical_attrs 100 100  225 425 0 0 0>  /* 56 RC(4,1) */,
+              <&key_physical_attrs 100 100  325 425 0 0 0>  /* 57 RC(4,2) */,
+              <&key_physical_attrs 100 100  425 425 0 0 0>  /* 58 RC(4,3) */,
+              <&key_physical_attrs 100 100  525 425 0 0 0>  /* 59 RC(4,4) */,
+              <&key_physical_attrs 100 100  625 425 0 0 0>  /* 60 RC(5,4) */,
+              <&key_physical_attrs 100 100  725 425 0 0 0>  /* 61 RC(5,5) */,
+              <&key_physical_attrs 100 100  825 425 0 0 0>  /* 62 RC(4,5) */,
+              <&key_physical_attrs 100 100  925 425 0 0 0>  /* 63 RC(4,6) */,
+              <&key_physical_attrs 100 100 1025 425 0 0 0>  /* 64 RC(4,7) */,
+              <&key_physical_attrs 100 100 1125 425 0 0 0>  /* 65 RC(5,8) */,
+              <&key_physical_attrs 275 100 1225 425 0 0 0>  /* 66 RC(2,15) */,
+              <&key_physical_attrs 125 100    0 525 0 0 0>  /* 67 RC(6,0) */,
+              <&key_physical_attrs 125 100  125 525 0 0 0>  /* 68 RC(1,16) */,
+              <&key_physical_attrs 125 100  250 525 0 0 0>  /* 69 RC(3,9) */,
+              <&key_physical_attrs 625 100  375 525 0 0 0>  /* 70 RC(3,11) */,
+              <&key_physical_attrs 100 100 1000 525 0 0 0>  /* 71 RC(5,9) */,
+              <&key_physical_attrs 100 100 1100 525 0 0 0>  /* 72 RC(2,9) */,
+              <&key_physical_attrs 100 100 1200 525 0 0 0>  /* 73 RC(5,14) */,
+              <&key_physical_attrs 100  50 1300 525 0 0 0>  /* 74 RC(3,14) */,
+              <&key_physical_attrs 100  50 1300 575 0 0 0>  /* 75 RC(5,11) */,
+              <&key_physical_attrs 100 100 1400 525 0 0 0>  /* 76 RC(5,12) */,
+              <&key_physical_attrs 100  50    0 700 0 0 0>  /* 77 RC(8,0) */,
+              <&key_physical_attrs 100  50  100 700 0 0 0>  /* 78 RC(8,1) */,
+              <&key_physical_attrs 100  50  200 700 0 0 0>  /* 79 RC(8,2) */,
+              <&key_physical_attrs 100  50  300 700 0 0 0>  /* 80 RC(8,3) */,
+              <&key_physical_attrs 100  50  400 700 0 0 0>  /* 81 RC(8,4) */
+            ;
+    };
+};

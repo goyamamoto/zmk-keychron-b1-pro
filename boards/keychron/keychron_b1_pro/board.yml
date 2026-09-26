@@ -1,0 +1,7 @@
+board:
+  name: keychron_b1_pro
+  vendor: keychron
+  socs:
+    - name: nrf52840
+      variants:
+        - name: zmk

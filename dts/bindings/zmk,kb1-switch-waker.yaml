@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: MIT
+
+description: |
+  Wakes the keyboard from soft off when any of the listed inputs changes
+  level. Each input is armed for the level opposite to the one it has when
+  soft off is entered. List it in zmk,soft-off-wakeup-sources.
+
+compatible: "zmk,kb1-switch-waker"
+
+include: base.yaml
+
+properties:
+  gpios:
+    type: phandle-array
+    required: true
+    description: The inputs to watch, with the flags of the kscan that reads them.
