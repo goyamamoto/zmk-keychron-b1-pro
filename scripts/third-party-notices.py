@@ -110,7 +110,9 @@ def linked_sources(build_dir, map_file, sdk_target):
             linked.add(os.path.basename(path))
 
     sources_by_obj = {}
-    for entry in json.load(open(os.path.join(build_dir, "compile_commands.json"))):
+    with open(os.path.join(build_dir, "compile_commands.json"), encoding="utf-8") as f:
+        compile_commands = json.load(f)
+    for entry in compile_commands:
         out_m = re.search(r"-o (\S+)", entry["command"])
         if out_m:
             sources_by_obj.setdefault(os.path.basename(out_m.group(1)), set()).add(entry["file"])
